@@ -1,0 +1,125 @@
+"""
+Parseur minimal du protocole UART en texte ASCII.
+
+Rôle : 
+- analyser les lignes de texte reçues sur l'UART
+- valider la syntaxe et les arguments
+- retourner une structure de données facilement exploitable par le programme principal
+
+Format retenu :
+- PING
+- STOP
+- STATUS
+- SET <gauche> <droite>
+
+Exemples :
+- PING
+- STOP
+- STATUS
+- SET 300 300
+- SET -250 400
+"""
+
+VITESSE_MIN = -1000
+VITESSE_MAX = 1000
+
+
+def analyser_commande(ligne):
+    """
+    Analyse une ligne texte et retourne un dictionnaire structuré.
+
+    Retour possible en cas de succès :
+    - {"valide": True, "action": "PING"}
+    - {"valide": True, "action": "STOP"}
+    - {"valide": True, "action": "STATUS"}
+    - {"valide": True, "action": "SET", "gauche": ..., "droite": ...}
+
+    Retour possible en cas d'erreur :
+    - {"valide": False, "erreur": "..."}
+    """
+    if ligne is None:
+        return _erreur("ligne absente")
+
+    try:
+        ligne = normaliser_ligne_commande(ligne)
+    except (UnicodeError, ValueError):
+        return _erreur("ligne invalide")
+
+    if not ligne:
+        return _erreur("ligne vide")
+
+    morceaux = ligne.split()
+    commande = morceaux[0].upper()
+
+    if commande == "PING":
+        if len(morceaux) != 1:
+            return _erreur("PING sans argument")
+        return {"valide": True, "action": "PING"}
+
+    if commande == "STOP":
+        if len(morceaux) != 1:
+            return _erreur("STOP sans argument")
+        return {"valide": True, "action": "STOP"}
+
+    if commande == "STATUS":
+        if len(morceaux) != 1:
+            return _erreur("STATUS sans argument")
+        return {"valide": True, "action": "STATUS"}
+
+    if commande == "SET":
+        if len(morceaux) != 3:
+            return _erreur("usage: SET <gauche> <droite>")
+
+        try:
+            gauche = int(morceaux[1])
+            droite = int(morceaux[2])
+        except ValueError:
+            return _erreur("vitesses entières requises")
+
+        if not (VITESSE_MIN <= gauche <= VITESSE_MAX):
+            return _erreur(f"gauche hors plage [{VITESSE_MIN},{VITESSE_MAX}]")
+
+        if not (VITESSE_MIN <= droite <= VITESSE_MAX):
+            return _erreur(f"droite hors plage [{VITESSE_MIN},{VITESSE_MAX}]")
+
+        return {
+            "valide": True,
+            "action": "SET",
+            "gauche": gauche,
+            "droite": droite,
+        }
+
+    return _erreur("commande inconnue")
+
+
+def normaliser_ligne_commande(ligne):
+    """
+    Normalise une ligne reçue pour tolérer plusieurs styles de fin de ligne.
+
+    Exemples acceptés :
+    - "PING\\r\\n"
+    - "SET 100 200\\r"
+    - b"STATUS\\n"
+    - "SET   100   200\\r\\r\\n"
+    """
+    if isinstance(ligne, bytes):
+        ligne = ligne.decode("utf-8")
+
+    if not isinstance(ligne, str):
+        ligne = str(ligne)
+
+    ligne = ligne.replace("\x00", "")
+    ligne = ligne.replace("\r", " ")
+    ligne = ligne.replace("\n", " ")
+
+    return " ".join(ligne.split())
+
+
+def _erreur(message):
+    """
+    Uniformise les réponses d'erreur du parseur.
+    """
+    return {
+        "valide": False,
+        "erreur": message,
+    }
