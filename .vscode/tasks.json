@@ -1,0 +1,71 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "mpremote: repl",
+      "type": "process",
+      "command": "${workspaceFolder}/.venv/bin/mpremote",
+      "args": ["connect", "auto", "repl"],
+      "presentation": {
+        "echo": false,
+        "showReuseMessage": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "mpremote: run main",
+      "type": "process",
+      "command": "${workspaceFolder}/.venv/bin/mpremote",
+      "args": ["run", "src/main.py"],
+      "presentation": {
+        "echo": false,
+        "showReuseMessage": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "mpremote: run main no-follow",
+      "type": "process",
+      "command": "${workspaceFolder}/.venv/bin/mpremote",
+      "args": ["run", "--no-follow", "src/main.py"],
+      "presentation": {
+        "echo": false,
+        "showReuseMessage": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "mpremote: upload all",
+      "type": "process",
+      "command": "${workspaceFolder}/.venv/bin/python",
+      "args": ["tools/upload_src_to_pico.py"],
+      "presentation": {
+        "echo": false,
+        "showReuseMessage": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "mpremote: fs tree -h",
+      "type": "process",
+      "command": "${workspaceFolder}/.venv/bin/mpremote",
+      "args": ["connect", "auto", "fs", "tree", "-h"],
+      "presentation": {
+        "echo": false,
+        "showReuseMessage": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "mpremote: hard reset",
+      "type": "process",
+      "command": "${workspaceFolder}/.venv/bin/mpremote",
+      "args": ["connect", "auto", "exec", "import machine; machine.reset()"],
+      "presentation": {
+        "echo": false,
+        "showReuseMessage": true
+      },
+      "problemMatcher": []
+    }
+  ]
+}

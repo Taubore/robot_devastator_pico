@@ -11,7 +11,7 @@ Rôle :
 - déclencher un arrêt de sécurité si plus aucune commande valide n'arrive
 """
 
-from machine import Pin, UART
+from machine import Pin, UART # pyright: ignore[reportMissingImports]
 import time
 
 from controleur_moteurs import ControleurMoteurs

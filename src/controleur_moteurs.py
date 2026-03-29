@@ -11,7 +11,7 @@ Convention :
 - vitesse nulle     -> arrêt   -> A à 0, B à 0
 """
 
-from machine import Pin, PWM
+from machine import Pin, PWM # pyright: ignore[reportMissingImports]
 
 
 class ControleurMoteurs:
@@ -53,6 +53,7 @@ class ControleurMoteurs:
 
         # Toujours démarrer à l'arrêt
         self.arreter()
+       
 
     def definir_vitesses(self, gauche, droite):
         """
