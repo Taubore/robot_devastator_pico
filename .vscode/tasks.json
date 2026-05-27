@@ -24,6 +24,17 @@
       "problemMatcher": []
     },
     {
+      "label": "mpremote: run test",
+      "type": "process",
+      "command": "${workspaceFolder}/.venv/bin/mpremote",
+      "args": ["run", "src/test.py"],
+      "presentation": {
+        "echo": false,
+        "showReuseMessage": true
+      },
+      "problemMatcher": []
+    },
+    {
       "label": "mpremote: run main no-follow",
       "type": "process",
       "command": "${workspaceFolder}/.venv/bin/mpremote",

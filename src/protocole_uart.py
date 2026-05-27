@@ -1,16 +1,9 @@
 """
-Parseur minimal du protocole UART en texte ASCII.
+Parseur du protocole UART en texte ASCII.
 
 Rôle : 
 - analyser les lignes de texte reçues sur l'UART
-- valider la syntaxe et les arguments
-- retourner une structure de données facilement exploitable par le programme principal
-
-Format retenu :
-- PING
-- STOP
-- STATUS
-- SET <gauche> <droite>
+- valider la syntaxe et les arguments en étant permissif avec les espaces et les \r et \n
 
 Exemples :
 - PING
@@ -18,11 +11,15 @@ Exemples :
 - STATUS
 - SET 300 300
 - SET -250 400
+- SERVO 90
+- DIST
 """
 
 VITESSE_MIN = -1000
 VITESSE_MAX = 1000
 
+SERVO_MIN = 45
+SERVO_MAX = 135
 
 def analyser_commande(ligne):
     """

@@ -1,7 +1,38 @@
 """
-Programme point d'entrée du Pico.
+Point d'entrée du Pico.
 
-Objectif : contrôler les moteurs à partir de commandes reçues sur l'UART.
+Objectif : contrôler le matériel connecté au Pico à partir de commandes reçues sur l'UART. Lorsque 
+l'initialisation du programme dans le Pico est convenablement initialisé, une transmission de READY est
+faite sur l'UART.
+
+Commandes supportées : 
+
+PING
+- Tester le lien UART. 
+- Retour : PONG
+
+SET -9999 -9999
+- Enregistrer la vitesse des moteurs gauche et droit.
+- Valeurs comprises entre -1000 et 1000
+- Retour : OK SET 9999 9999
+
+STATUS
+- Demande le statut des moteurs
+- Retour : OK STATUS gauche=9999 droite=9999 actif=9
+- gauche et droite représente la vitesse et actif indique 1 si actif sinon 0
+
+STOP
+- Stopper les deux moteurs rapidement. 
+- Retour : OK STOP
+
+DIST
+- Retour la distance en mm lue à partir du capteur ultrason
+- Retour : 999
+
+SERVO 999
+- Positionne le servo moteur à l'angle voulu
+- Valeurs comprises entre 45 et 135. Le centre est à 90.
+- RETOUR : OK SERVO
 
 Rôle :
 - initialiser l'UART
@@ -22,9 +53,13 @@ from protocole_uart import analyser_commande
 # Paramètres matériels et de communication
 # ============================================================================
 
-UART_ID = 0
+# GPIO
 UART_TX_GPIO = 0
 UART_RX_GPIO = 1
+CAPTEUR_ULTRASON_GPIO = 14
+SERVOMOTEUR_GPIO = 15
+
+UART_ID = 0
 UART_BAUDRATE = 115200
 
 # Délai maximal sans commande valide avant arrêt de sécurité
