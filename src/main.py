@@ -26,13 +26,13 @@ STOP
 - Retour : OK STOP
 
 DIST
-- Retour la distance en mm lue à partir du capteur ultrason
+- Retourne la distance en mm lue à partir du capteur ultrason.
 - Retour : 999
 
 SERVO 999
-- Positionne le servo moteur à l'angle voulu
-- Valeurs comprises entre 45 et 135. Le centre est à 90.
-- RETOUR : OK SERVO
+- Positionne le servo moteur à l'angle voulu.
+- Valeurs comprises entre 0 et 180. Le centre est à 95, droite à 45 et gauche à 140
+- Retour : OK SERVO
 
 Rôle :
 - initialiser l'UART
@@ -45,8 +45,10 @@ Rôle :
 from machine import Pin, UART # pyright: ignore[reportMissingImports]
 import time
 
+from capteur_ultrason import CapteurUltrason
 from controleur_moteurs import ControleurMoteurs
 from protocole_uart import analyser_commande
+from servo import Servo
 
 
 # ============================================================================
@@ -148,7 +150,7 @@ def extraire_lignes_uart(donnees, tampon_ligne, separateur_precedent, ligne_en_r
     return lignes, tampon_ligne, separateur_precedent, ligne_en_rejet, ligne_trop_longue
 
 
-def traiter_ligne(uart, controleur, ligne):
+def traiter_ligne(uart, controleur, capteur_ultrason, servomoteur, ligne):
     """
     Analyse une ligne reçue et applique l'action correspondante.
 
@@ -191,6 +193,21 @@ def traiter_ligne(uart, controleur, ligne):
         )
         return True
 
+    if action == "DIST":
+        distance_mm = capteur_ultrason.lire_distance_mm()
+
+        if distance_mm < 0:
+            envoyer_reponse(uart, "ERREUR : distance invalide")
+            return True
+
+        envoyer_reponse(uart, str(distance_mm))
+        return True
+
+    if action == "SERVO":
+        servomoteur.angle = commande["angle"]
+        envoyer_reponse(uart, "OK SERVO")
+        return True
+
     envoyer_reponse(uart, "ERREUR : action inconnue")
     return False
 
@@ -215,6 +232,8 @@ def main():
     )
 
     controleur = ControleurMoteurs()
+    capteur_ultrason = CapteurUltrason(CAPTEUR_ULTRASON_GPIO)
+    servomoteur = Servo(SERVOMOTEUR_GPIO)
 
     # Par sécurité, on force explicitement l'arrêt au démarrage
     controleur.arreter()
@@ -255,7 +274,13 @@ def main():
                     envoyer_reponse(uart, "ERREUR : encodage invalide")
                     continue
 
-                commande_valide = traiter_ligne(uart, controleur, ligne)
+                commande_valide = traiter_ligne(
+                    uart,
+                    controleur,
+                    capteur_ultrason,
+                    servomoteur,
+                    ligne
+                )
 
                 if commande_valide:
                     dernier_message_valide_ms = time.ticks_ms()

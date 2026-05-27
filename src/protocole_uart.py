@@ -11,15 +11,15 @@ Exemples :
 - STATUS
 - SET 300 300
 - SET -250 400
-- SERVO 90
+- SERVO 95
 - DIST
 """
 
 VITESSE_MIN = -1000
 VITESSE_MAX = 1000
 
-SERVO_MIN = 45
-SERVO_MAX = 135
+SERVO_MIN = 0
+SERVO_MAX = 180
 
 def analyser_commande(ligne):
     """
@@ -30,6 +30,8 @@ def analyser_commande(ligne):
     - {"valide": True, "action": "STOP"}
     - {"valide": True, "action": "STATUS"}
     - {"valide": True, "action": "SET", "gauche": ..., "droite": ...}
+    - {"valide": True, "action": "DIST"}
+    - {"valide": True, "action": "SERVO", "angle": ...}
 
     Retour possible en cas d'erreur :
     - {"valide": False, "erreur": "..."}
@@ -62,6 +64,29 @@ def analyser_commande(ligne):
         if len(morceaux) != 1:
             return _erreur("STATUS sans argument")
         return {"valide": True, "action": "STATUS"}
+
+    if commande == "DIST":
+        if len(morceaux) != 1:
+            return _erreur("DIST sans argument")
+        return {"valide": True, "action": "DIST"}
+
+    if commande == "SERVO":
+        if len(morceaux) != 2:
+            return _erreur("usage: SERVO <angle>")
+
+        try:
+            angle = int(morceaux[1])
+        except ValueError:
+            return _erreur("angle entier requis")
+
+        if not (SERVO_MIN <= angle <= SERVO_MAX):
+            return _erreur(f"angle hors plage [{SERVO_MIN},{SERVO_MAX}]")
+
+        return {
+            "valide": True,
+            "action": "SERVO",
+            "angle": angle,
+        }
 
     if commande == "SET":
         if len(morceaux) != 3:

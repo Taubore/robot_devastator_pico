@@ -1,12 +1,19 @@
 """
 Pour faciliter les mouvements d'un servomoteur.
 """
-from machine import PWM # pyright: ignore[reportMissingImports]
+from machine import Pin, PWM # pyright: ignore[reportMissingImports]
+
+
+IMPULSION_MIN_NS = 500000
+IMPULSION_MAX_NS = 2500000
+ANGLE_MIN = 0
+ANGLE_MAX = 180
+
 
 class Servo:
 
     def __init__(self, gpio_sig: int):
-        self.s = PWM(gpio_sig)
+        self.s = PWM(Pin(gpio_sig))
         self.s.freq(50)
         self._angle = None
         self.detach()
@@ -26,8 +33,12 @@ class Servo:
     
     @angle.setter
     def angle(self, degrees):
-        assert 0 <= degrees <= 180, "Angle doit être entre 0 et 180 degrés"
+        if not (ANGLE_MIN <= degrees <= ANGLE_MAX):
+            raise ValueError("Angle doit être entre 0 et 180 degrés")
+
         self._angle = int(degrees)
+
         # Convertir l'angle en durée de signal (en nanosecondes)
-        ns = 500000 + 2000000/180 * self._angle
+        largeur_plage_ns = IMPULSION_MAX_NS - IMPULSION_MIN_NS
+        ns = IMPULSION_MIN_NS + largeur_plage_ns * self._angle // ANGLE_MAX
         self.s.duty_ns(int(ns))
