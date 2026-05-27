@@ -1,9 +1,8 @@
 """
 Point d'entrée du Pico.
 
-Objectif : contrôler le matériel connecté au Pico à partir de commandes reçues sur l'UART. Lorsque 
-l'initialisation du programme dans le Pico est convenablement initialisé, une transmission de READY est
-faite sur l'UART.
+Objectif : contrôler le matériel connecté au Pico à partir de commandes reçues sur l'UART.
+Lorsque l'initialisation du programme est terminée, le Pico envoie READY sur l'UART.
 
 Commandes supportées : 
 
@@ -31,7 +30,7 @@ DIST
 
 SERVO 999
 - Positionne le servo moteur à l'angle voulu.
-- Valeurs comprises entre 0 et 180. Le centre est à 95, droite à 45 et gauche à 140
+- Valeurs comprises entre 0 et 180. Le centre est à 95, gauche à 45 et droite à 140.
 - Retour : OK SERVO
 
 Rôle :
@@ -89,6 +88,7 @@ def clignoter_led_depart():
         time.sleep_ms(200)
         led.off()
         time.sleep_ms(200)
+
 
 def envoyer_reponse(uart, message):
     """
@@ -196,6 +196,7 @@ def traiter_ligne(uart, controleur, capteur_ultrason, servomoteur, ligne):
     if action == "DIST":
         distance_mm = capteur_ultrason.lire_distance_mm()
 
+        # Garde-fou conservé si une future implémentation du capteur signale une erreur par -1.
         if distance_mm < 0:
             envoyer_reponse(uart, "ERREUR : distance invalide")
             return True
@@ -257,7 +258,13 @@ def main():
 
         if donnees:
             print("UART RX:", donnees)
-            lignes_brutes, tampon_reception, dernier_octet_etait_separateur, ligne_uart_en_rejet, ligne_trop_longue = extraire_lignes_uart(
+            (
+                lignes_brutes,
+                tampon_reception,
+                dernier_octet_etait_separateur,
+                ligne_uart_en_rejet,
+                ligne_trop_longue,
+            ) = extraire_lignes_uart(
                 donnees,
                 tampon_reception,
                 dernier_octet_etait_separateur,
@@ -293,7 +300,11 @@ def main():
 
         if duree_sans_commande_ms > DELAI_SECURITE_MS:
             if controleur.est_actif():
-                print("Aucune commande valide depuis", duree_sans_commande_ms, "ms. Arrêt de sécurité déclenché.")
+                print(
+                    "Aucune commande valide depuis",
+                    duree_sans_commande_ms,
+                    "ms. Arrêt de sécurité déclenché."
+                )
                 controleur.arreter()
                 envoyer_reponse(uart, "WARN TIMEOUT STOP")
 

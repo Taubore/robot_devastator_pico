@@ -1,49 +1,78 @@
 # robot_devastator_pico
 
-Code MicroPython du Raspberry Pi Pico WH pour le projet Devastator.
+Firmware MicroPython du Raspberry Pi Pico / Pico WH pour le projet Devastator.
+
+Le Pico reçoit des commandes texte sur l'UART, contrôle deux moteurs via un driver MDD3A,
+lit un capteur ultrason Grove et pilote un servomoteur.
 
 ## Structure
-- `src/` : fichiers déployés sur le Pico
-- `tools/` : scripts locaux de téléversement et test
-- `.vscode/` : configuration VSCode locale
+
+- `src/` : fichiers Python destinés au Pico.
+- `tools/` : scripts locaux de téléversement.
+- `.venv/` : environnement Python local attendu pour les outils, non versionné.
+- `.vscode/` : configuration VSCode locale si présente.
 
 ## Fichiers actuels
-- `main.py`
-- `controleur_moteurs.py`
-- `protocole_uart.py`
-- `capteur_ultrason.py`
-- `servo.py`
+
+- `src/main.py` : point d'entrée du firmware.
+- `src/controleur_moteurs.py` : commande PWM des deux moteurs.
+- `src/protocole_uart.py` : analyse des commandes texte reçues sur l'UART.
+- `src/capteur_ultrason.py` : lecture du Grove Ultrasonic Ranger V2.0.
+- `src/servo.py` : commande du servomoteur.
+- `src/test.py` : script pratique pour tester rapidement le servo et le capteur ultrason.
+- `tools/upload_src_to_pico.py` : copie les fichiers de `src/` vers le Pico avec `mpremote`.
 
 ## Matériel
-- UART 0 : TX sur GPIO 0, RX sur GPIO 1, 115200 bauds
-- Moteurs : driver MDD3A sur GPIO 2 à 5
-- Capteur ultrason Grove : SIG sur GPIO 14
-- Servomoteur : signal sur GPIO 15
 
-## Important pour éviter problème de démarrage du Pico
-Lors de la mise sous tension du Pico et du Raspbery Pi, il faut déconnecter la ligne Raspberry Pi 
-TX GPIO14 → Pico RX GPIO1 car elle perturbe le démarrage du Pico. Une fois qu'on constate les
-3 clignotements de la LED interne du Pico, c'est OK. Si ça ne clignote pas, c'est qu'il y a eu 
-perturbation. On peut ensuite remettre la ligne active. Si tout est OK, GPIO 0 et GPIO 1 du Pico
-devrait être à l'état haut.
+- UART 0 : TX sur GPIO 0, RX sur GPIO 1, 115200 bauds.
+- Moteurs : driver MDD3A sur GPIO 2 à 5.
+- Capteur ultrason Grove : SIG sur GPIO 14.
+- Servomoteur : signal sur GPIO 15.
 
-Pour faciliter, j'ai mis un petit interrupteur qu'il faut tirer vers l'extérieur pendant la mise
-sous tension. Ensuite, il s'Agit de le pousser vers l'intérieur. Les voyrant sur le board du Pico 
-devraient alors s'allumer pour GPIO 0 et 1. Si seulement GPIO 0 est allumé, ce n'est pas OK.
+## Démarrage du Pico
+
+Lors de la mise sous tension du Pico et du Raspberry Pi, il faut déconnecter temporairement la
+ligne Raspberry Pi TX GPIO14 vers Pico RX GPIO1, car elle peut perturber le démarrage du Pico.
+
+Le démarrage correct est confirmé par 3 clignotements de la LED interne du Pico. Si la LED ne
+clignote pas, le démarrage a probablement été perturbé.
+
+Procédure utilisée sur ce montage :
+
+1. Tirer le petit interrupteur vers l'extérieur pendant la mise sous tension.
+2. Attendre les 3 clignotements de la LED interne du Pico.
+3. Pousser l'interrupteur vers l'intérieur pour réactiver la ligne UART.
+4. Vérifier que les voyants du board du Pico pour GPIO 0 et GPIO 1 sont allumés.
+
+Si seul GPIO 0 est allumé, l'état n'est pas correct.
 
 ## Protocole UART
+
 Les commandes sont envoyées en texte ASCII, terminées par `\n`, `\r` ou `\r\n`.
 
-- `PING` : teste le lien UART. Retour : `PONG`
-- `STOP` : arrête les deux moteurs. Retour : `OK STOP`
+- `PING` : teste le lien UART. Retour : `PONG`.
+- `STOP` : arrête les deux moteurs. Retour : `OK STOP`.
 - `SET <gauche> <droite>` : applique les vitesses moteur de `-1000` à `1000`.
-  Retour : `OK SET <gauche> <droite>`
-- `STATUS` : retourne l'état moteur. Retour : `OK STATUS gauche=<v> droite=<v> actif=<0|1>`
+  Retour : `OK SET <gauche> <droite>`.
+- `STATUS` : retourne l'état moteur.
+  Retour : `OK STATUS gauche=<v> droite=<v> actif=<0|1>`.
 - `DIST` : retourne uniquement la distance mesurée en millimètres, par exemple `250`.
-  Retourne `ERREUR : distance invalide` si le capteur ne mesure aucun écho valide.
-- `SERVO <angle>` : positionne le servomoteur entre `0` et `180` degrés. `95` = centré, 
-  `140` = à droite, `45` = à gauche
-  Retour : `OK SERVO`
+  La valeur est plafonnée entre `20` et `3500` mm.
+- `SERVO <angle>` : positionne le servomoteur entre `0` et `180` degrés.
+  Repères actuels : `45` = gauche, `95` = centre, `140` = droite.
+  Retour : `OK SERVO`.
+
+Au démarrage, le Pico envoie aussi `READY` lorsque l'initialisation est terminée.
+
+## Déploiement
+
+Le script de téléversement utilise `mpremote` depuis `.venv`.
+
+Exemple depuis la racine du dépôt :
+
+```bash
+python tools/upload_src_to_pico.py
+```
 
 ## Test UART depuis le Raspberry Pi 4
 
@@ -59,7 +88,8 @@ Connexion utilisée :
 
 Commande de test depuis le Raspberry Pi :
 
-```bash 
+```bash
 picocom -b 115200 -c /dev/ttyS0
 ```
-Faire CTRL+A puis CTRL+X pour quitter.
+
+Faire `CTRL+A` puis `CTRL+X` pour quitter.

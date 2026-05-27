@@ -10,7 +10,7 @@ from time import sleep_ms, sleep_us     # pyright: ignore[reportAttributeAccessI
 DISTANCE_MIN_MM = 20
 DISTANCE_MAX_MM = 3500
 
-# 30000 us garde une marge sans bloquer trop longtemps si le capteur est défectueux ou 
+# 30000 us garde une marge sans bloquer trop longtemps si le capteur est défectueux ou
 # si l'écho est perdu.
 TIMEOUT_ECHO_US = 30000
 
@@ -28,7 +28,7 @@ class CapteurUltrason:
         Retourne la distance en mm.
 
         La valeur est plafonnée entre 20 mm et 3500 mm, soit les limites du capteur.
-        Retourne 3500 mm si aucune impulsion d'écho valide n'est reçue dans le délai du timeout
+        Retourne 3500 mm si aucune impulsion d'écho valide n'est reçue avant le délai.
         """
 
         # État bas de stabilisation avant le déclenchement.
@@ -46,8 +46,8 @@ class CapteurUltrason:
 
         duree_echo_us = time_pulse_us(self.broche_sig, 1, TIMEOUT_ECHO_US)
 
-        # La fonction time_pulse_us retourne une valeur négative si dépasse le délai du timeout ou 
-        # si une erreur survient. On considère dans ce cas que cela correspond à une distance 
+        # La fonction time_pulse_us retourne une valeur négative si le délai est dépassé ou
+        # si une erreur survient. On considère dans ce cas que cela correspond à une distance
         # maximale.
         if duree_echo_us <= 0:
             return DISTANCE_MAX_MM
