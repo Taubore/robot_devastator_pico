@@ -13,6 +13,8 @@ Exemples :
 - SET -250 400
 - SERVO 95
 - DIST
+- ENC
+- RESET_ENC
 """
 
 VITESSE_MIN = -1000
@@ -32,6 +34,8 @@ def analyser_commande(ligne):
     - {"valide": True, "action": "SET", "gauche": ..., "droite": ...}
     - {"valide": True, "action": "DIST"}
     - {"valide": True, "action": "SERVO", "angle": ...}
+    - {"valide": True, "action": "ENC"}
+    - {"valide": True, "action": "RESET_ENC"}
 
     Retour possible en cas d'erreur :
     - {"valide": False, "erreur": "..."}
@@ -69,6 +73,16 @@ def analyser_commande(ligne):
         if len(morceaux) != 1:
             return _erreur("DIST sans argument")
         return {"valide": True, "action": "DIST"}
+
+    if commande == "ENC":
+        if len(morceaux) != 1:
+            return _erreur("ENC sans argument")
+        return {"valide": True, "action": "ENC"}
+
+    if commande == "RESET_ENC":
+        if len(morceaux) != 1:
+            return _erreur("RESET_ENC sans argument")
+        return {"valide": True, "action": "RESET_ENC"}
 
     if commande == "SERVO":
         if len(morceaux) != 2:

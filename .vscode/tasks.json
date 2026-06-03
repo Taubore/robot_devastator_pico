@@ -24,10 +24,21 @@
       "problemMatcher": []
     },
     {
-      "label": "mpremote: run test",
+      "label": "mpremote: test protocole direct",
       "type": "process",
       "command": "${workspaceFolder}/.venv/bin/mpremote",
-      "args": ["run", "src/test.py"],
+      "args": ["run", "tools/test_protocole_direct_mpremote.py"],
+      "presentation": {
+        "echo": false,
+        "showReuseMessage": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "python: test protocole UART matériel",
+      "type": "process",
+      "command": "${workspaceFolder}/.venv/bin/python",
+      "args": ["tools/test_protocole_uart.py"],
       "presentation": {
         "echo": false,
         "showReuseMessage": true

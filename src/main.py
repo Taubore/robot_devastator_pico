@@ -33,6 +33,14 @@ SERVO 999
 - Valeurs comprises entre 0 et 180. Le centre est à 95, gauche à 45 et droite à 140.
 - Retour : OK SERVO
 
+ENC
+- Retourne les ticks encodeurs normalisés.
+- Retour : OK ENC gauche=9999 droite=9999
+
+RESET_ENC
+- Remet les compteurs encodeurs à zéro.
+- Retour : OK RESET_ENC
+
 Rôle :
 - initialiser l'UART
 - initialiser le contrôleur moteurs
@@ -46,6 +54,7 @@ import time
 
 from capteur_ultrason import CapteurUltrason
 from controleur_moteurs import ControleurMoteurs
+from encodeurs import EncodeursMoteurs
 from protocole_uart import analyser_commande
 from servo import Servo
 
@@ -150,7 +159,7 @@ def extraire_lignes_uart(donnees, tampon_ligne, separateur_precedent, ligne_en_r
     return lignes, tampon_ligne, separateur_precedent, ligne_en_rejet, ligne_trop_longue
 
 
-def traiter_ligne(uart, controleur, capteur_ultrason, servomoteur, ligne):
+def traiter_ligne(uart, controleur, capteur_ultrason, servomoteur, encodeurs, ligne):
     """
     Analyse une ligne reçue et applique l'action correspondante.
 
@@ -209,6 +218,19 @@ def traiter_ligne(uart, controleur, capteur_ultrason, servomoteur, ligne):
         envoyer_reponse(uart, "OK SERVO")
         return True
 
+    if action == "ENC":
+        ticks = encodeurs.obtenir_ticks()
+        envoyer_reponse(
+            uart,
+            f"OK ENC gauche={ticks['gauche']} droite={ticks['droite']}"
+        )
+        return True
+
+    if action == "RESET_ENC":
+        encodeurs.remettre_a_zero()
+        envoyer_reponse(uart, "OK RESET_ENC")
+        return True
+
     envoyer_reponse(uart, "ERREUR : action inconnue")
     return False
 
@@ -235,6 +257,7 @@ def main():
     controleur = ControleurMoteurs()
     capteur_ultrason = CapteurUltrason(CAPTEUR_ULTRASON_GPIO)
     servomoteur = Servo(SERVOMOTEUR_GPIO)
+    encodeurs = EncodeursMoteurs()
 
     # Par sécurité, on force explicitement l'arrêt au démarrage
     controleur.arreter()
@@ -286,6 +309,7 @@ def main():
                     controleur,
                     capteur_ultrason,
                     servomoteur,
+                    encodeurs,
                     ligne
                 )
 
