@@ -8,7 +8,7 @@ lit un capteur ultrason Grove et pilote un servomoteur.
 ## Structure
 
 - `src/` : fichiers Python destinés au Pico.
-- `tools/` : scripts locaux de téléversement.
+- `tools/` : scripts locaux de téléversement et d'essai.
 - `.venv/` : environnement Python local attendu pour les outils, non versionné.
 - `.vscode/` : configuration VSCode locale si présente.
 
@@ -66,23 +66,50 @@ Si seul GPIO 0 est allumé, l'état n'est pas correct.
 
 Les commandes sont envoyées en texte ASCII, terminées par `\n`, `\r` ou `\r\n`.
 
-- `PING` : teste le lien UART. Retour : `PONG`.
-- `STOP` : arrête les deux moteurs. Retour : `OK STOP`.
-- `SET <gauche> <droite>` : applique les vitesses moteur de `-1000` à `1000`.
-  Retour : `OK SET <gauche> <droite>`.
+Au démarrage, le Pico envoie l'événement spontané :
+
+```text
+READY
+```
+
+Les réponses de succès suivent ce format :
+
+```text
+OK <COMMANDE> [valeurs séparées par un espace...]
+```
+
+Les réponses d'erreur suivent ce format :
+
+```text
+ERR <CODE>
+```
+
+L'arrêt de sécurité par délai sans commande valide envoie l'événement spontané :
+
+```text
+AVERT TIMEOUT
+```
+
+Commandes disponibles :
+
+- `PING` : teste le lien UART. Retour : `OK PING`.
 - `STATUS` : retourne l'état moteur.
-  Retour : `OK STATUS gauche=<v> droite=<v> actif=<0|1>`.
-- `DIST` : retourne uniquement la distance mesurée en millimètres, par exemple `250`.
-  La valeur est plafonnée entre `20` et `3500` mm.
-- `SERVO <angle>` : positionne le servomoteur entre `0` et `180` degrés.
+  Retour : `OK STATUS <gauche> <droite> <actif>`.
+- `STOP_MOT` : arrête les deux moteurs. Retour : `OK STOP_MOT`.
+- `SET_MOT <gauche> <droite>` : applique les vitesses moteur de `-1000` à `1000`.
+  Retour : `OK SET_MOT <gauche> <droite>`.
+- `SET_SERVO <angle>` : positionne le servomoteur entre `0` et `180` degrés.
   Repères actuels : `45` = gauche, `95` = centre, `140` = droite.
-  Retour : `OK SERVO`.
+  Retour : `OK SET_SERVO <angle>`.
+- `SONAR` : retourne la distance ultrason en millimètres.
+  Retour : `OK SONAR <distance_mm>`.
+  La valeur est plafonnée entre `20` et `3500` mm.
 - `ENC` : retourne les ticks encodeurs normalisés.
-  Retour : `OK ENC gauche=<ticks> droite=<ticks>`.
+  Retour : `OK ENC <gauche_ticks> <droite_ticks>`.
 - `RESET_ENC` : remet les deux compteurs encodeurs à zéro.
   Retour : `OK RESET_ENC`.
 
-Au démarrage, le Pico envoie aussi `READY` lorsque l'initialisation est terminée.
+Les anciens noms `STOP`, `SET`, `DIST` et `SERVO` ne sont plus acceptés.
 
 ## Déploiement
 
@@ -145,12 +172,30 @@ picocom -b 115200 -c /dev/ttyS0
 
 Faire `CTRL+A` puis `CTRL+X` pour quitter.
 
+Séquence manuelle courte, roues dans le vide :
+
+```text
+PING
+STATUS
+SONAR
+SET_SERVO 95
+RESET_ENC
+ENC
+SET_MOT 150 150
+ENC
+STOP_MOT
+STATUS
+```
+
 Le script `tools/test_protocole_uart.py` exécute un parcours complet du protocole par l'UART
 matériel et affiche les réponses à valider visuellement. Les roues doivent être dans le vide,
 car il envoie aussi de courtes commandes moteur.
 
+Le Pico étant connecté sur un Raspberry Pi avec les connexion ci-haut mentionné, il faut alors
+amorcer une session SSH et copier ce script sur le Raspberry Pi.
+
 ```bash
-.venv/bin/python tools/test_protocole_uart.py
+python test_protocole_uart.py
 ```
 
 Commandes UART utiles pour valider les encodeurs, roues dans le vide :
@@ -160,14 +205,14 @@ PING
 STATUS
 RESET_ENC
 ENC
-SET 150 150
+SET_MOT 150 150
 ENC
 ENC
-STOP
-SET -150 -150
+STOP_MOT
+SET_MOT -150 -150
 ENC
 ENC
-STOP
+STOP_MOT
 RESET_ENC
 ENC
 ```

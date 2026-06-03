@@ -8,34 +8,34 @@ Commandes supportées :
 
 PING
 - Tester le lien UART. 
-- Retour : PONG
+- Retour : OK PING
 
-SET -9999 -9999
+SET_MOT -9999 -9999
 - Enregistrer la vitesse des moteurs gauche et droit.
 - Valeurs comprises entre -1000 et 1000
-- Retour : OK SET 9999 9999
+- Retour : OK SET_MOT 9999 9999
 
 STATUS
 - Demande le statut des moteurs
-- Retour : OK STATUS gauche=9999 droite=9999 actif=9
+- Retour : OK STATUS 9999 9999 9
 - gauche et droite représente la vitesse et actif indique 1 si actif sinon 0
 
-STOP
+STOP_MOT
 - Stopper les deux moteurs rapidement. 
-- Retour : OK STOP
+- Retour : OK STOP_MOT
 
-DIST
+SONAR
 - Retourne la distance en mm lue à partir du capteur ultrason.
-- Retour : 999
+- Retour : OK SONAR 999
 
-SERVO 999
+SET_SERVO 999
 - Positionne le servo moteur à l'angle voulu.
 - Valeurs comprises entre 0 et 180. Le centre est à 95, gauche à 45 et droite à 140.
-- Retour : OK SERVO
+- Retour : OK SET_SERVO 999
 
 ENC
 - Retourne les ticks encodeurs normalisés.
-- Retour : OK ENC gauche=9999 droite=9999
+- Retour : OK ENC 9999 9999
 
 RESET_ENC
 - Remet les compteurs encodeurs à zéro.
@@ -170,59 +170,56 @@ def traiter_ligne(uart, controleur, capteur_ultrason, servomoteur, encodeurs, li
     commande = analyser_commande(ligne)
     
     if not commande["valide"]:
-        envoyer_reponse(uart, f"ERREUR : {commande['erreur']}")
+        envoyer_reponse(uart, f"ERR {commande['erreur']}")
         return False
 
     action = commande["action"]
 
     if action == "PING":
-        envoyer_reponse(uart, "PONG")
+        envoyer_reponse(uart, "OK PING")
         return True
 
-    if action == "STOP":
+    if action == "STOP_MOT":
         controleur.arreter()
-        envoyer_reponse(uart, "OK STOP")
+        envoyer_reponse(uart, "OK STOP_MOT")
         return True
 
-    if action == "SET":
+    if action == "SET_MOT":
         gauche = commande["gauche"]
         droite = commande["droite"]
         controleur.definir_vitesses(gauche, droite)
-        envoyer_reponse(uart, f"OK SET {gauche} {droite}")
+        envoyer_reponse(uart, f"OK SET_MOT {gauche} {droite}")
         return True
 
     if action == "STATUS":
         etat = controleur.obtenir_etat()
         envoyer_reponse(
             uart,
-            "OK STATUS "
-            f"gauche={etat['gauche']} "
-            f"droite={etat['droite']} "
-            f"actif={etat['actif']}"
+            f"OK STATUS {etat['gauche']} {etat['droite']} {etat['actif']}"
         )
         return True
 
-    if action == "DIST":
+    if action == "SONAR":
         distance_mm = capteur_ultrason.lire_distance_mm()
 
         # Garde-fou conservé si une future implémentation du capteur signale une erreur par -1.
         if distance_mm < 0:
-            envoyer_reponse(uart, "ERREUR : distance invalide")
+            envoyer_reponse(uart, "ERR DISTANCE")
             return True
 
-        envoyer_reponse(uart, str(distance_mm))
+        envoyer_reponse(uart, f"OK SONAR {distance_mm}")
         return True
 
-    if action == "SERVO":
+    if action == "SET_SERVO":
         servomoteur.angle = commande["angle"]
-        envoyer_reponse(uart, "OK SERVO")
+        envoyer_reponse(uart, f"OK SET_SERVO {commande['angle']}")
         return True
 
     if action == "ENC":
         ticks = encodeurs.obtenir_ticks()
         envoyer_reponse(
             uart,
-            f"OK ENC gauche={ticks['gauche']} droite={ticks['droite']}"
+            f"OK ENC {ticks['gauche']} {ticks['droite']}"
         )
         return True
 
@@ -231,7 +228,7 @@ def traiter_ligne(uart, controleur, capteur_ultrason, servomoteur, encodeurs, li
         envoyer_reponse(uart, "OK RESET_ENC")
         return True
 
-    envoyer_reponse(uart, "ERREUR : action inconnue")
+    envoyer_reponse(uart, "ERR ACTION")
     return False
 
 
@@ -295,13 +292,13 @@ def main():
             )
 
             if ligne_trop_longue:
-                envoyer_reponse(uart, "ERREUR : ligne trop longue")
+                envoyer_reponse(uart, "ERR LIGNE")
 
             for ligne_brute in lignes_brutes:
                 try:
-                    ligne = ligne_brute.decode("utf-8")
+                    ligne = ligne_brute.decode("ascii")
                 except UnicodeError:
-                    envoyer_reponse(uart, "ERREUR : encodage invalide")
+                    envoyer_reponse(uart, "ERR ENCODAGE")
                     continue
 
                 commande_valide = traiter_ligne(
@@ -330,7 +327,7 @@ def main():
                     "ms. Arrêt de sécurité déclenché."
                 )
                 controleur.arreter()
-                envoyer_reponse(uart, "WARN TIMEOUT STOP")
+                envoyer_reponse(uart, "AVERT TIMEOUT")
 
             # On remet la référence à maintenant pour éviter de spammer le message
             dernier_message_valide_ms = maintenant_ms

@@ -7,12 +7,12 @@ Rôle :
 
 Exemples :
 - PING
-- STOP
+- STOP_MOT
 - STATUS
-- SET 300 300
-- SET -250 400
-- SERVO 95
-- DIST
+- SET_MOT 300 300
+- SET_MOT -250 400
+- SET_SERVO 95
+- SONAR
 - ENC
 - RESET_ENC
 """
@@ -29,103 +29,103 @@ def analyser_commande(ligne):
 
     Retour possible en cas de succès :
     - {"valide": True, "action": "PING"}
-    - {"valide": True, "action": "STOP"}
+    - {"valide": True, "action": "STOP_MOT"}
     - {"valide": True, "action": "STATUS"}
-    - {"valide": True, "action": "SET", "gauche": ..., "droite": ...}
-    - {"valide": True, "action": "DIST"}
-    - {"valide": True, "action": "SERVO", "angle": ...}
+    - {"valide": True, "action": "SET_MOT", "gauche": ..., "droite": ...}
+    - {"valide": True, "action": "SONAR"}
+    - {"valide": True, "action": "SET_SERVO", "angle": ...}
     - {"valide": True, "action": "ENC"}
     - {"valide": True, "action": "RESET_ENC"}
 
     Retour possible en cas d'erreur :
-    - {"valide": False, "erreur": "..."}
+    - {"valide": False, "erreur": "CODE"}
     """
     if ligne is None:
-        return _erreur("ligne absente")
+        return _erreur("LIGNE")
 
     try:
         ligne = normaliser_ligne_commande(ligne)
     except (UnicodeError, ValueError):
-        return _erreur("ligne invalide")
+        return _erreur("ENCODAGE")
 
     if not ligne:
-        return _erreur("ligne vide")
+        return _erreur("LIGNE")
 
     morceaux = ligne.split()
     commande = morceaux[0].upper()
 
     if commande == "PING":
         if len(morceaux) != 1:
-            return _erreur("PING sans argument")
+            return _erreur("ARG")
         return {"valide": True, "action": "PING"}
 
-    if commande == "STOP":
+    if commande == "STOP_MOT":
         if len(morceaux) != 1:
-            return _erreur("STOP sans argument")
-        return {"valide": True, "action": "STOP"}
+            return _erreur("ARG")
+        return {"valide": True, "action": "STOP_MOT"}
 
     if commande == "STATUS":
         if len(morceaux) != 1:
-            return _erreur("STATUS sans argument")
+            return _erreur("ARG")
         return {"valide": True, "action": "STATUS"}
 
-    if commande == "DIST":
+    if commande == "SONAR":
         if len(morceaux) != 1:
-            return _erreur("DIST sans argument")
-        return {"valide": True, "action": "DIST"}
+            return _erreur("ARG")
+        return {"valide": True, "action": "SONAR"}
 
     if commande == "ENC":
         if len(morceaux) != 1:
-            return _erreur("ENC sans argument")
+            return _erreur("ARG")
         return {"valide": True, "action": "ENC"}
 
     if commande == "RESET_ENC":
         if len(morceaux) != 1:
-            return _erreur("RESET_ENC sans argument")
+            return _erreur("ARG")
         return {"valide": True, "action": "RESET_ENC"}
 
-    if commande == "SERVO":
+    if commande == "SET_SERVO":
         if len(morceaux) != 2:
-            return _erreur("usage: SERVO <angle>")
+            return _erreur("ARG")
 
         try:
             angle = int(morceaux[1])
         except ValueError:
-            return _erreur("angle entier requis")
+            return _erreur("ENTIER")
 
         if not (SERVO_MIN <= angle <= SERVO_MAX):
-            return _erreur(f"angle hors plage [{SERVO_MIN},{SERVO_MAX}]")
+            return _erreur("PLAGE")
 
         return {
             "valide": True,
-            "action": "SERVO",
+            "action": "SET_SERVO",
             "angle": angle,
         }
 
-    if commande == "SET":
+    if commande == "SET_MOT":
         if len(morceaux) != 3:
-            return _erreur("usage: SET <gauche> <droite>")
+            return _erreur("ARG")
 
         try:
             gauche = int(morceaux[1])
             droite = int(morceaux[2])
         except ValueError:
-            return _erreur("vitesses entières requises")
+            return _erreur("ENTIER")
 
         if not (VITESSE_MIN <= gauche <= VITESSE_MAX):
-            return _erreur(f"gauche hors plage [{VITESSE_MIN},{VITESSE_MAX}]")
+            return _erreur("PLAGE")
 
         if not (VITESSE_MIN <= droite <= VITESSE_MAX):
-            return _erreur(f"droite hors plage [{VITESSE_MIN},{VITESSE_MAX}]")
+            return _erreur("PLAGE")
 
         return {
             "valide": True,
-            "action": "SET",
+            "action": "SET_MOT",
             "gauche": gauche,
             "droite": droite,
         }
 
-    return _erreur("commande inconnue")
+    return _erreur("COMMANDE")
 
 
 def normaliser_ligne_commande(ligne):
@@ -134,15 +134,17 @@ def normaliser_ligne_commande(ligne):
 
     Exemples acceptés :
     - "PING\\r\\n"
-    - "SET 100 200\\r"
+    - "SET_MOT 100 200\\r"
     - b"STATUS\\n"
-    - "SET   100   200\\r\\r\\n"
+    - "SET_MOT   100   200\\r\\r\\n"
     """
     if isinstance(ligne, bytes):
-        ligne = ligne.decode("utf-8")
+        ligne = ligne.decode("ascii")
 
     if not isinstance(ligne, str):
         ligne = str(ligne)
+
+    ligne.encode("ascii")
 
     ligne = ligne.replace("\x00", "")
     ligne = ligne.replace("\r", " ")

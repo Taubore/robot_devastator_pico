@@ -30,21 +30,21 @@ SEPARATEUR_TEST = "-" * 48
 COMMANDES_TEST = (
     "PING",
     "STATUS",
-    "DIST",
-    "SERVO 45",
-    "SERVO 95",
-    "SERVO 140",
-    "SERVO 95",
+    "SONAR",
+    "SET_SERVO 45",
+    "SET_SERVO 95",
+    "SET_SERVO 140",
+    "SET_SERVO 95",
     "RESET_ENC",
     "ENC",
-    "SET 150 150",
+    "SET_MOT 150 150",
     "ENC",
     "ENC",
-    "STOP",
-    "SET -150 -150",
+    "STOP_MOT",
+    "SET_MOT -150 -150",
     "ENC",
     "ENC",
-    "STOP",
+    "STOP_MOT",
     "RESET_ENC",
     "ENC",
     "STATUS",
@@ -65,31 +65,31 @@ def traiter_commande_directe(commande_texte, controleur, capteur_ultrason, servo
     commande = analyser_commande(commande_texte)
 
     if not commande["valide"]:
-        repondre("ERREUR : " + commande["erreur"])
+        repondre("ERR " + commande["erreur"])
         return
 
     action = commande["action"]
 
     if action == "PING":
-        repondre("PONG")
+        repondre("OK PING")
         return
 
-    if action == "STOP":
+    if action == "STOP_MOT":
         controleur.arreter()
-        repondre("OK STOP")
+        repondre("OK STOP_MOT")
         return
 
-    if action == "SET":
+    if action == "SET_MOT":
         gauche = commande["gauche"]
         droite = commande["droite"]
         controleur.definir_vitesses(gauche, droite)
-        repondre("OK SET {} {}".format(gauche, droite))
+        repondre("OK SET_MOT {} {}".format(gauche, droite))
         return
 
     if action == "STATUS":
         etat = controleur.obtenir_etat()
         repondre(
-            "OK STATUS gauche={} droite={} actif={}".format(
+            "OK STATUS {} {} {}".format(
                 etat["gauche"],
                 etat["droite"],
                 etat["actif"],
@@ -97,18 +97,18 @@ def traiter_commande_directe(commande_texte, controleur, capteur_ultrason, servo
         )
         return
 
-    if action == "DIST":
-        repondre(str(capteur_ultrason.lire_distance_mm()))
+    if action == "SONAR":
+        repondre("OK SONAR {}".format(capteur_ultrason.lire_distance_mm()))
         return
 
-    if action == "SERVO":
+    if action == "SET_SERVO":
         servomoteur.angle = commande["angle"]
-        repondre("OK SERVO")
+        repondre("OK SET_SERVO {}".format(commande["angle"]))
         return
 
     if action == "ENC":
         ticks = encodeurs.obtenir_ticks()
-        repondre("OK ENC gauche={} droite={}".format(ticks["gauche"], ticks["droite"]))
+        repondre("OK ENC {} {}".format(ticks["gauche"], ticks["droite"]))
         return
 
     if action == "RESET_ENC":
@@ -116,14 +116,14 @@ def traiter_commande_directe(commande_texte, controleur, capteur_ultrason, servo
         repondre("OK RESET_ENC")
         return
 
-    repondre("ERREUR : action inconnue")
+    repondre("ERR ACTION")
 
 
 def pause_apres_commande(commande_texte):
     """
     Laisse le temps au matériel de réagir, surtout pendant les courts mouvements moteur.
     """
-    if commande_texte.startswith("SET "):
+    if commande_texte.startswith("SET_MOT "):
         sleep_ms(DELAI_MOUVEMENT_MS)
         return
 
@@ -162,7 +162,7 @@ def main():
     finally:
         print(SEPARATEUR_TEST)
         controleur.arreter()
-        print("OK STOP")
+        print("OK STOP_MOT")
         print("Test terminé.")
 
 
