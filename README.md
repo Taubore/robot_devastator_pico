@@ -189,7 +189,10 @@ STATUS
 
 Le script `tools/test_protocole_uart.py` exécute un parcours complet du protocole par l'UART
 matériel et affiche les réponses à valider visuellement. Les roues doivent être dans le vide,
-car il envoie aussi de courtes commandes moteur.
+car il envoie aussi de courtes commandes moteur à vitesse moyenne. Sa séquence visible est
+alignée sur le pré-test direct par `mpremote`. Pendant les pauses moteur, il répète
+discrètement la commande active afin de respecter l'arrêt de sécurité du firmware sans écourter
+le mouvement.
 
 Le Pico étant connecté sur un Raspberry Pi avec les connexion ci-haut mentionné, il faut alors
 amorcer une session SSH et copier ce script sur le Raspberry Pi.
@@ -203,19 +206,33 @@ Commandes UART utiles pour valider les encodeurs, roues dans le vide :
 ```text
 PING
 STATUS
+SONAR
+SET_SERVO 45
+SONAR
+SET_SERVO 95
+SONAR
+SET_SERVO 140
+SONAR
+SET_SERVO 95
+SONAR
 RESET_ENC
 ENC
-SET_MOT 150 150
+SET_MOT 500 500
 ENC
 ENC
 STOP_MOT
-SET_MOT -150 -150
+SET_MOT -500 -500
 ENC
 ENC
 STOP_MOT
 RESET_ENC
 ENC
+SET_MOT -500 -500
+ENC
+ENC
+STOP_MOT
+STATUS
 ```
 
 En avance, les deux compteurs doivent augmenter. En recul, les deux compteurs doivent diminuer.
-Commencer avec des vitesses prudentes et garder les roues hors sol pendant ces essais.
+Garder les roues hors sol pendant ces essais.

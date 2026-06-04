@@ -4,7 +4,8 @@ Test final du protocole par l'UART matériel du firmware Pico.
 À lancer depuis le Raspberry Pi relié au Pico par UART. Ce script envoie les commandes texte au
 firmware réel, lit les réponses UART et affiche le résultat à valider visuellement.
 
-Les roues doivent être dans le vide, car le test envoie de courtes commandes moteur prudentes.
+Les roues doivent être dans le vide, car le test envoie de courtes commandes moteur à vitesse
+moyenne.
 """
 
 import argparse
@@ -18,32 +19,44 @@ import tty
 PORT_UART_DEFAUT = "/dev/ttyS0"
 BAUDRATE_DEFAUT = 115200
 DELAI_REPONSE_S = 0.8
-PAUSE_COMMANDE_S = 0.4
-PAUSE_OBSERVATION_S = 1.5
+DELAI_REPONSE_RAPPEL_S = 0.12
+DELAI_SECURITE_DEPART_S = 3.0
+DELAI_COMMANDE_S = 0.5
+DELAI_MOUVEMENT_S = 1.2
+DELAI_OBSERVATION_S = 1.5
+INTERVALLE_RAPPEL_MOTEUR_S = 0.25
 
 SEPARATEUR_TEST = "-" * 48
 
 COMMANDES_TEST = (
-    ("PING", "OK PING"),
-    ("STATUS", "OK STATUS"),
-    ("SONAR", "OK SONAR"),
-    ("SET_SERVO 45", "OK SET_SERVO 45"),
-    ("SET_SERVO 95", "OK SET_SERVO 95"),
-    ("SET_SERVO 140", "OK SET_SERVO 140"),
-    ("SET_SERVO 95", "OK SET_SERVO 95"),
-    ("RESET_ENC", "OK RESET_ENC"),
-    ("ENC", "OK ENC"),
-    ("SET_MOT 150 150", "OK SET_MOT 150 150"),
-    ("ENC", "OK ENC"),
-    ("ENC", "OK ENC"),
-    ("STOP_MOT", "OK STOP_MOT"),
-    ("SET_MOT -150 -150", "OK SET_MOT -150 -150"),
-    ("ENC", "OK ENC"),
-    ("ENC", "OK ENC"),
-    ("STOP_MOT", "OK STOP_MOT"),
-    ("RESET_ENC", "OK RESET_ENC"),
-    ("ENC", "OK ENC"),
-    ("STATUS", "OK STATUS"),
+    "PING",
+    "STATUS",
+    "SONAR",
+    "SET_SERVO 45",
+    "SONAR",
+    "SET_SERVO 95",
+    "SONAR",
+    "SET_SERVO 140",
+    "SONAR",
+    "SET_SERVO 95",
+    "SONAR",
+    "RESET_ENC",
+    "ENC",
+    "SET_MOT 500 500",
+    "ENC",
+    "ENC",
+    "STOP_MOT",
+    "SET_MOT -500 -500",
+    "ENC",
+    "ENC",
+    "STOP_MOT",
+    "RESET_ENC",
+    "ENC",
+    "SET_MOT -500 -500",
+    "ENC",
+    "ENC",
+    "STOP_MOT",
+    "STATUS",
 )
 
 
@@ -134,6 +147,25 @@ def envoyer_commande(descripteur, commande):
     os.write(descripteur, (commande + "\n").encode("ascii"))
 
 
+def obtenir_prefixe_attendu(commande):
+    """
+    Retourne le préfixe de réponse attendu pour une commande visible du test.
+    """
+    if commande.startswith("SET_MOT "):
+        return "OK " + commande
+
+    if commande.startswith("SET_SERVO "):
+        return "OK " + commande
+
+    if commande in ("PING", "STOP_MOT", "RESET_ENC"):
+        return "OK " + commande
+
+    if commande in ("STATUS", "SONAR", "ENC"):
+        return "OK " + commande
+
+    return ""
+
+
 def verifier_reponse(lignes, prefixe_attendu):
     """
     Vérifie simplement que la réponse attendue est visible.
@@ -148,40 +180,102 @@ def verifier_reponse(lignes, prefixe_attendu):
     return False
 
 
+def afficher_reponse(lignes, prefixe_attendu):
+    """
+    Affiche la réponse utile avec le même format nominal que le pré-test direct.
+    """
+    for ligne in lignes:
+        if ligne.startswith(prefixe_attendu):
+            print(ligne)
+            return
+
+    if not lignes:
+        print("À VÉRIFIER aucune réponse")
+        return
+
+    for ligne in lignes:
+        print(ligne)
+
+    print(f"À VÉRIFIER réponse attendue absente : {prefixe_attendu}")
+
+
+def pause_apres_commande_s(commande):
+    """
+    Laisse le temps au matériel de réagir, surtout pendant les courts mouvements moteur.
+    """
+    if commande.startswith("SET_MOT "):
+        return DELAI_MOUVEMENT_S
+
+    return DELAI_COMMANDE_S
+
+
+def attendre_avec_rappel_moteur(descripteur, duree_s, commande_moteur):
+    """
+    Attend en répétant la commande moteur active pour respecter la sécurité du firmware.
+    """
+    if not commande_moteur:
+        time.sleep(duree_s)
+        return
+
+    fin_s = time.monotonic() + duree_s
+    prochain_rappel_s = time.monotonic() + INTERVALLE_RAPPEL_MOTEUR_S
+
+    while time.monotonic() < fin_s:
+        maintenant_s = time.monotonic()
+
+        if maintenant_s >= prochain_rappel_s:
+            envoyer_commande(descripteur, commande_moteur)
+            lire_reponses(descripteur, DELAI_REPONSE_RAPPEL_S)
+            prochain_rappel_s = time.monotonic() + INTERVALLE_RAPPEL_MOTEUR_S
+            continue
+
+        attente_s = min(0.05, max(0, prochain_rappel_s - maintenant_s))
+        time.sleep(attente_s)
+
+    lire_reponses(descripteur, DELAI_REPONSE_RAPPEL_S)
+
+
 def executer_tests(port, baudrate):
     """
     Exécute le parcours de test complet du protocole.
     """
+    print("Test final du protocole par UART matériel.")
+    print("Roues dans le vide requises. Départ dans 3 secondes.")
+    time.sleep(DELAI_SECURITE_DEPART_S)
+
     descripteur = os.open(port, os.O_RDWR | os.O_NOCTTY | os.O_NONBLOCK)
+    commande_moteur = None
 
     try:
         configurer_uart(descripteur, baudrate)
-        lignes_depart = lire_reponses(descripteur, DELAI_REPONSE_S)
+        lire_reponses(descripteur, DELAI_REPONSE_S)
 
-        if lignes_depart:
-            print("Réponses déjà présentes :")
-            for ligne in lignes_depart:
-                print(f"  {ligne}")
-
-        for commande, prefixe_attendu in COMMANDES_TEST:
+        for commande in COMMANDES_TEST:
             print(SEPARATEUR_TEST)
             print(f"> {commande}", flush=True)
 
             envoyer_commande(descripteur, commande)
-            time.sleep(PAUSE_COMMANDE_S)
             lignes = lire_reponses(descripteur, DELAI_REPONSE_S)
-            etat = "OK" if verifier_reponse(lignes, prefixe_attendu) else "À VÉRIFIER"
+            prefixe_attendu = obtenir_prefixe_attendu(commande)
+            afficher_reponse(lignes, prefixe_attendu)
 
-            if lignes:
-                for ligne in lignes:
-                    print(f"  {ligne}")
-            else:
-                print("  aucune réponse")
+            if verifier_reponse(lignes, prefixe_attendu):
+                if commande.startswith("SET_MOT "):
+                    commande_moteur = commande
+                elif commande == "STOP_MOT":
+                    commande_moteur = None
 
-            print(f"  résultat : {etat}\n")
-            time.sleep(PAUSE_OBSERVATION_S)
+            attendre_avec_rappel_moteur(
+                descripteur,
+                pause_apres_commande_s(commande) + DELAI_OBSERVATION_S,
+                commande_moteur,
+            )
 
     finally:
+        print(SEPARATEUR_TEST)
+        envoyer_commande(descripteur, "STOP_MOT")
+        afficher_reponse(lire_reponses(descripteur, DELAI_REPONSE_S), "OK STOP_MOT")
+        print("Test terminé.")
         os.close(descripteur)
 
 
