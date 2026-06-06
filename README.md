@@ -27,11 +27,15 @@ lit un capteur ultrason Grove et pilote un servomoteur.
 ## Matériel
 
 - UART 0 : TX sur GPIO 0, RX sur GPIO 1, 115200 bauds.
-- Moteurs : driver MDD3A sur GPIO 2 à 5.
+- Moteur gauche logique : driver MDD3A sur GPIO 4 et GPIO 5.
+- Moteur droit logique : driver MDD3A sur GPIO 2 et GPIO 3.
 - Capteur ultrason Grove : SIG sur GPIO 14.
 - Servomoteur : signal sur GPIO 15.
-- Encodeur droit : A sur GPIO10 (vert), B sur GPIO11 (jaune)
-- Encodeur gauche : A sur GPIO12 (vert), B sur GPIO13 (jaune)
+- Encodeur gauche logique : A sur GPIO10 (vert), B sur GPIO11 (jaune)
+- Encodeur droit logique : A sur GPIO12 (vert), B sur GPIO13 (jaune)
+
+Les noms gauche et droit décrivent la convention logicielle du robot. Cette convention tient
+compte du montage actuel, sans inversion physique des connecteurs moteurs ou encodeurs.
 
 Les ticks encodeurs retournés par le Pico suivent la convention du robot :
 
@@ -157,10 +161,10 @@ Connexion utilisée :
 - Pico UART0
 - Pico TX GPIO0 → Raspberry Pi RX GPIO15
 - Pico RX GPIO1 ← Raspberry Pi TX GPIO14
-- Pico GPIO10	FIT0521 - Encodeur moteur droit A (Vert)
-- Pico GPIO11	FIT0521 - Encodeur moteur droit	B (Jaune)
-- Pico GPIO12	FIT0521 - Encodeur moteur gauche A (Vert)
-- Pico GPIO13	FIT0521 - Encodeur moteur gauche B (Jaune)
+- Pico GPIO10	FIT0521 - Encodeur moteur gauche logique A (Vert)
+- Pico GPIO11	FIT0521 - Encodeur moteur gauche logique B (Jaune)
+- Pico GPIO12	FIT0521 - Encodeur moteur droit logique A (Vert)
+- Pico GPIO13	FIT0521 - Encodeur moteur droit logique B (Jaune)
 - GND Pico ↔ GND Raspberry Pi
 - Débit : 115200 bauds
 

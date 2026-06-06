@@ -19,11 +19,11 @@ class ControleurMoteurs:
     Gère les deux moteurs en sortie PWM.
     """
 
-    # GPIO validés pour le projet
-    GPIO_GAUCHE_A = 2
-    GPIO_GAUCHE_B = 3
-    GPIO_DROITE_A = 4
-    GPIO_DROITE_B = 5
+    # GPIO selon la convention logicielle gauche/droite du robot
+    GPIO_GAUCHE_A = 4
+    GPIO_GAUCHE_B = 5
+    GPIO_DROITE_A = 2
+    GPIO_DROITE_B = 3
 
     # Fréquence PWM actuelle retenue
     FREQUENCE_PWM_HZ = 1000
