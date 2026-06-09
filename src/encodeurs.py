@@ -11,13 +11,13 @@ from machine import Pin, disable_irq, enable_irq  # pyright: ignore[reportMissin
 
 
 GPIO_ENCODEUR_DROIT_A = 12
-GPIO_ENCODEUR_DROIT_B = 13
+GPIO_ENCODEUR_DROIT_B = 13 
 GPIO_ENCODEUR_GAUCHE_A = 10
 GPIO_ENCODEUR_GAUCHE_B = 11
 
 # Ajuster uniquement ces facteurs si un encodeur compte dans le mauvais sens.
-FACTEUR_ENCODEUR_GAUCHE = 1
-FACTEUR_ENCODEUR_DROITE = -1
+FACTEUR_ENCODEUR_GAUCHE = -1
+FACTEUR_ENCODEUR_DROITE = 1
 
 IRQ_ENCODEUR = Pin.IRQ_RISING | Pin.IRQ_FALLING
 
